@@ -1,0 +1,62 @@
+*** /tmp/wine-wine-1.9.11/server/thread.c	2016-05-27 16:40:02.000000000 +0200
+--- ../server/thread.c	2016-06-13 04:30:48.000000000 +0200
+***************
+*** 38,43 ****
+--- 38,52 ----
+  #ifdef HAVE_SCHED_H
+  #include <sched.h>
+  #endif
++ #if defined(__APPLE__)
++ #include <mach/mach_types.h>
++ #include <pthread.h>
++ #include <IOKit/IOKitLib.h>
++ #include <mach/thread_act.h>
++ #include <mach/mach_port.h>
++ #include <mach/task.h>
++ #include <mach/mach_traps.h>
++ #endif
+  
+  #include "ntstatus.h"
+  #define WIN32_NO_STATUS
+***************
+*** 449,454 ****
+--- 458,496 ----
+  
+          ret = sched_setaffinity( thread->unix_tid, sizeof(set), &set );
+      }
++ #elif defined(__APPLE__)
++     if (thread->unix_tid != -1 && __builtin_popcount(affinity) == 1) {
++         mach_port_t proc_port = thread->process->trace_data;
++         if (task_suspend(proc_port) != KERN_SUCCESS) {
++             fprintf(stderr, "Failed to suspend task %d\n", proc_port);
++         }
++ 
++         static io_connect_t conn;
++         static io_service_t service;
++ 
++         mach_port_t thread_port;
++         mach_msg_type_name_t type;
++         if (mach_port_extract_right(proc_port, thread->unix_tid, MACH_MSG_TYPE_COPY_SEND, &thread_port, &type))
++             fprintf(stderr, "Failed to obtain thread port for %d\n", thread->unix_tid);
++ 
++         if (!service)
++             service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("ThreadBinder"));
++         if (!conn)
++             if (IOServiceOpen(service, mach_task_self(), 0, &conn) != KERN_SUCCESS)
++                 fprintf(stderr, "Failed to open ThreadBinder IOService\n");
++ 
++         uint64_t input[] = {thread_port, affinity > 0 ? affinity - 1 : affinity};
++         uint64_t res = 0;
++         uint32_t outCnt = 0;
++ 
++         kern_return_t kret = IOConnectCallScalarMethod(conn, 0, input, 2, &res, &outCnt);
++         if (kret != KERN_SUCCESS)
++             ret = EINVAL;
++         // fprintf(stderr, "binding 0x%x; kret: 0x%x\n", thread_port, kret);
++ 
++         task_resume(proc_port);
++         mach_port_deallocate(proc_port, thread_port);
++     }
+  #endif
+      if (!ret) thread->affinity = affinity;
+      return ret;
