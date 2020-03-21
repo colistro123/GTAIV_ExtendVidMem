@@ -8,7 +8,7 @@ Virus Total results for [dinput8.dll](https://www.virustotal.com/gui/file/bd14bc
 
 Linux
 ======
-To run on Proton/Linux simply add `WINEDLLOVERRIDES="dinput8=n,b" %command%` as a launch option. Thanks to @Managor
+To run on Proton/Linux simply add `WINEDLLOVERRIDES="dinput8=n,b" %command%` as a launch option. Thanks to [@Managor](https://github.com/Managor "@Managor")
 
 Notice:
 ======
