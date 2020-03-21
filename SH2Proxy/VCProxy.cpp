@@ -36,6 +36,8 @@ bool bDelay;
 DWORD WINAPI Init(LPVOID)
 {
 	//location = hook::pattern("8b ? ? ? ? ? 83 ? 14 33 ? 85 ? 74 ? ff").count(1).get(0).get<char>(0);
+	gl_patcher.PreHooks();
+
 #if 1
 	auto pattern = hook::pattern("8b ? ? ? ? ? 83 ? 14 33 ? 85 ? 74 ? ff");
 	if (!(pattern.size() > 0) && !bDelay)
