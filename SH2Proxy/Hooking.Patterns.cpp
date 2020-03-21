@@ -193,7 +193,7 @@ namespace hook
 
 		auto matchSuccess = [&](uintptr_t address)
 		{
-#ifndef HINTSON
+#ifdef HINTSON
 #if !defined(COMPILING_SHARED_LIBC)
 			Citizen_PatternSaveHint(m_hash, address);
 #endif
@@ -297,7 +297,7 @@ namespace hook
 		g_hints.insert(std::make_pair(hash, address));
 	}
 }
-#ifndef HINTSON
+#ifdef HINTSON
 static HookFunction hookFunction([]()
 {
 #ifdef _WINDOWS
